@@ -13,6 +13,7 @@ public class ControllerAdvisor {
 
     @ExceptionHandler({UserDoesNotExistsException.class, UserExistsException.class, IncorrectPassword.class})
     public ResponseEntity<String> handleExceptions(Exception exception) {
+        //if (exception instanceof UserDoesNotExistsException) {}
         return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
     }
 }
