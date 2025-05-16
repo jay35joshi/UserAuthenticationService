@@ -3,6 +3,7 @@ package com.example.userauthenticationservice.controllers;
 import com.example.userauthenticationservice.dtos.LoginRequestDto;
 import com.example.userauthenticationservice.dtos.SignupRequestDto;
 import com.example.userauthenticationservice.dtos.UserDto;
+import com.example.userauthenticationservice.dtos.ValidateTokenRequest;
 import com.example.userauthenticationservice.exceptions.UserExistsException;
 import com.example.userauthenticationservice.models.User;
 import com.example.userauthenticationservice.services.IAuthService;
@@ -39,6 +40,12 @@ public class AuthController {
         Pair<User, MultiValueMap<String,String>> response = authService.login(loginRequestDto.getEmail(), loginRequestDto.getPassword());
         UserDto userDto = from(response.a);
         return new ResponseEntity<>(userDto, response.b,HttpStatus.OK);
+    }
+
+    @PostMapping("/validateToken")
+    public boolean validateToken(@RequestBody ValidateTokenRequest validateTokenRequest){
+        return authService.validateToken(validateTokenRequest.getUserId(), validateTokenRequest.getToken());
+
     }
 
     public UserDto from(User user){

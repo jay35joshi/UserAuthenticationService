@@ -8,6 +8,8 @@ import com.example.userauthenticationservice.models.User;
 import com.example.userauthenticationservice.models.UserSession;
 import com.example.userauthenticationservice.repos.SessionRepo;
 import com.example.userauthenticationservice.repos.UserRepo;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.MacAlgorithm;
 import org.antlr.v4.runtime.misc.Pair;
@@ -21,6 +23,7 @@ import org.springframework.util.MultiValueMap;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -34,6 +37,10 @@ public class AuthService implements IAuthService {
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     @Autowired
     private SessionRepo sessionRepo;
+
+    //Problem when server reboots new secret key will be generated thats why its stored in secrets manager
+    @Autowired
+    private SecretKey secretKey;
 
     @Override
     public User signup(String email, String password) {
@@ -85,8 +92,8 @@ public class AuthService implements IAuthService {
 
 
 
-        MacAlgorithm macAlgorithm = Jwts.SIG.HS256;
-        SecretKey secretKey = macAlgorithm.key().build();
+        //MacAlgorithm macAlgorithm = Jwts.SIG.HS256;
+        //SecretKey secretKey = macAlgorithm.key().build();
 
         //String token = Jwts.builder().content(content).signWith(secretKey).compact();
 
@@ -104,5 +111,35 @@ public class AuthService implements IAuthService {
 
         Pair<User,MultiValueMap<String,String>> response = new Pair<>(optionalUser.get(), headers);
         return response;
+    }
+
+    public boolean validateToken(long userId, String token) {
+
+        Optional<UserSession> optionalUserSession = sessionRepo.findByTokenAndId(token,userId);
+
+        if(optionalUserSession.isEmpty()){
+            return false;
+        }
+
+        UserSession userSession = optionalUserSession.get();
+
+        String persistedToken = userSession.getToken();
+
+        JwtParser parser = Jwts.parser().verifyWith(secretKey).build();
+        Claims claims = parser.parseSignedClaims(persistedToken).getPayload();
+
+        Long expiryStoredInToken = (long)claims.get("exp");
+        Long currentTimeinMillis = System.currentTimeMillis();
+        System.out.println(expiryStoredInToken);
+        System.out.println(currentTimeinMillis);
+
+        if(currentTimeinMillis > expiryStoredInToken){
+            userSession.setStatus(Status.INACTIVE);
+            sessionRepo.save(userSession);
+            return false;
+        }
+
+        return true;
+
     }
 }

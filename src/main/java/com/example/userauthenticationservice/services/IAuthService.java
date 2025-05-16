@@ -8,4 +8,5 @@ public interface IAuthService {
 
     public User signup(String email, String password);
     public Pair<User, MultiValueMap<String,String>> login(String email, String password);
+    public boolean validateToken(long userId, String token);
 }
